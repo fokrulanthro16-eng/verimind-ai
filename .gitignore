@@ -50,3 +50,8 @@ next-env.d.ts
 Thumbs.db
 .vscode/
 .idea/
+
+# Demo Studio & Video Artifacts
+demo_studio/
+*.mp4
+devpost_screenshots/
