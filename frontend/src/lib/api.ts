@@ -1,4 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+const isProxy =
+  process.env.NEXT_PUBLIC_USE_PROXY === "true" ||
+  process.env.NEXT_PUBLIC_API_URL === "";
+
+const API_BASE = isProxy
+  ? ""
+  : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000");
 
 export interface HealthResponse {
   status: string;
