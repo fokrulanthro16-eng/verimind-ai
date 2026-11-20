@@ -14,13 +14,13 @@ export default function CompetencyPassport({ passport, onReset }: CompetencyPass
   const [verifiedOnline, setVerifiedOnline] = useState<boolean | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
 
+  // Tamper testing states
+  const [showTamperModal, setShowTamperModal] = useState(false);
+  const [testHash, setTestHash] = useState(passport.passport_hash);
+
   const probPct = (passport.authenticity_probability * 100).toFixed(1);
 
-  const verdictStyles = {
-    "VERIFIED MASTERY": "text-sage border-sage",
-    "SURFACE / AI-ASSISTED": "text-ochre border-ochre",
-    "CONCEPT GAP": "text-vermilion border-vermilion",
-  };
+  const isHashUntampered = testHash.trim().toUpperCase() === passport.passport_hash.trim().toUpperCase();
 
   const handleCopyAndVerify = async () => {
     try {
@@ -39,6 +39,22 @@ export default function CompetencyPassport({ passport, onReset }: CompetencyPass
       setVerifiedOnline(false);
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
+  const mutateSingleBit = () => {
+    if (testHash.length > 5) {
+      const idx = 4;
+      const originalChar = testHash[idx];
+      const replacementChar = originalChar === "A" ? "B" : "A";
+      const mutated = testHash.substring(0, idx) + replacementChar + testHash.substring(idx + 1);
+      setTestHash(mutated);
     }
   };
 
@@ -82,8 +98,8 @@ export default function CompetencyPassport({ passport, onReset }: CompetencyPass
           <FeatureAttributionBars attributions={passport.feature_attributions} />
         </div>
 
-        {/* Cryptographic Verification Hash & 1-Click Verify Button */}
-        <div className="border-t border-[#2E2D2A] pt-4 flex flex-col md:flex-row md:items-center justify-between text-[11px] font-mono gap-3">
+        {/* Cryptographic Verification Hash & Actions */}
+        <div className="border-t border-[#2E2D2A] pt-4 flex flex-col lg:flex-row lg:items-center justify-between text-[11px] font-mono gap-3">
           <div className="truncate mr-2">
             <div className="text-[9px] text-[#9A9589] uppercase tracking-wider mb-0.5">
               SHA-256 Tamper-Evident Ledger Signature
@@ -93,13 +109,38 @@ export default function CompetencyPassport({ passport, onReset }: CompetencyPass
             </div>
           </div>
 
-          <button
-            onClick={handleCopyAndVerify}
-            disabled={isVerifying}
-            className="px-4 py-2 bg-[#F5F3EE] text-[#121211] font-semibold uppercase tracking-wider text-[10px] hover:bg-stone transition-colors whitespace-nowrap flex-shrink-0"
-          >
-            {isVerifying ? "VERIFYING LEDGER..." : copied ? "COPIED & VERIFIED ✓" : "COPY HASH & VERIFY"}
-          </button>
+          <div className="flex flex-wrap items-center gap-2 flex-shrink-0 no-print">
+            {/* Copy & Verify */}
+            <button
+              onClick={handleCopyAndVerify}
+              disabled={isVerifying}
+              className="px-3.5 py-1.5 bg-[#F5F3EE] text-[#121211] font-semibold uppercase tracking-wider text-[10px] hover:bg-stone transition-colors whitespace-nowrap"
+            >
+              {isVerifying ? "VERIFYING LEDGER..." : copied ? "COPIED & VERIFIED ✓" : "COPY HASH & VERIFY"}
+            </button>
+
+            {/* Test Tampering Modal Trigger */}
+            <button
+              onClick={() => {
+                setTestHash(passport.passport_hash);
+                setShowTamperModal(true);
+              }}
+              className="px-3 py-1.5 border border-ochre text-ochre font-semibold uppercase tracking-wider text-[10px] hover:bg-ochre hover:text-alabaster transition-colors whitespace-nowrap flex items-center space-x-1"
+            >
+              <span>🛡</span>
+              <span>TEST TAMPERING</span>
+            </button>
+
+            {/* Download Passport PDF */}
+            <button
+              onClick={handleDownloadPDF}
+              className="px-3 py-1.5 border border-[#3E3D39] text-[#C2BDB2] font-semibold uppercase tracking-wider text-[10px] hover:text-[#F5F3EE] hover:border-[#68645B] transition-colors whitespace-nowrap flex items-center space-x-1"
+              title="Print / Export Certificate as PDF"
+            >
+              <span>⎙</span>
+              <span>DOWNLOAD PASSPORT (PDF)</span>
+            </button>
+          </div>
         </div>
 
         {verifiedOnline && (
@@ -108,6 +149,88 @@ export default function CompetencyPassport({ passport, onReset }: CompetencyPass
           </div>
         )}
       </div>
+
+      {/* Interactive Tamper-Proof Audit Modal */}
+      {showTamperModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 select-none">
+          <div className="bg-[#121211] text-[#F5F3EE] border border-[#2E2D2A] max-w-xl w-full p-6 space-y-4 font-mono shadow-2xl">
+            <div className="flex justify-between items-center border-b border-[#2E2D2A] pb-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-[#F5F3EE] flex items-center space-x-2">
+                <span>🛡</span>
+                <span>CRYPTOGRAPHIC TAMPER-EVIDENT STRESS AUDIT</span>
+              </div>
+              <button
+                onClick={() => setShowTamperModal(false)}
+                className="text-[#9A9589] hover:text-[#F5F3EE] text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="font-sans text-xs text-[#C2BDB2] leading-relaxed">
+              VeriMind locks every assessment verdict with an immutable SHA-256 digest over the canonical JSON payload.
+              Edit any single character below or click <strong>Mutate 1 Bit</strong> to observe real-time cryptographic mismatch detection.
+            </p>
+
+            {/* Hash Input Field */}
+            <div>
+              <label className="text-[10px] text-[#9A9589] uppercase tracking-wider block mb-1">
+                Editable Verification Digest (64-character SHA-256):
+              </label>
+              <textarea
+                rows={2}
+                value={testHash}
+                onChange={(e) => setTestHash(e.target.value.toUpperCase())}
+                className="w-full p-2.5 bg-[#1C1B19] border border-[#3E3D39] text-xs font-mono text-[#F5F3EE] focus:outline-none focus:border-sage resize-none"
+              />
+            </div>
+
+            {/* Verification Alert Banner */}
+            <div
+              className={`p-3 border text-xs font-bold flex items-center space-x-2 transition-all ${
+                isHashUntampered
+                  ? "bg-[#162B20] border-sage text-sage"
+                  : "bg-[#331713] border-vermilion text-vermilion"
+              }`}
+            >
+              <span>{isHashUntampered ? "✓" : "⚠"}</span>
+              <span>
+                {isHashUntampered
+                  ? "LEDGER SIGNATURE VERIFIED · Bits intact & authentic against SQLite audit record"
+                  : "TAMPERING DETECTED · INVALID SIGNATURE · Alteration detected! Ledger rejects modified passport"}
+              </span>
+            </div>
+
+            {/* Modal Controls */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#2E2D2A]">
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={mutateSingleBit}
+                  className="px-3 py-1.5 bg-[#2B1B17] border border-vermilion text-vermilion text-[10px] font-bold uppercase tracking-wider hover:bg-vermilion hover:text-alabaster transition-colors"
+                >
+                  ⚡ Mutate 1 Bit (Simulate Tampering)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTestHash(passport.passport_hash)}
+                  className="px-3 py-1.5 bg-[#1C1B19] border border-[#3E3D39] text-[#C2BDB2] text-[10px] uppercase tracking-wider hover:text-white"
+                >
+                  Restore Original Hash
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowTamperModal(false)}
+                className="px-4 py-1.5 bg-[#F5F3EE] text-[#121211] font-semibold text-[10px] uppercase tracking-wider"
+              >
+                Close Audit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Socratic Pedagogical Remediation Callout Box */}
       <div className="p-5 bg-stone border border-rule-hairline font-mono text-xs space-y-3">

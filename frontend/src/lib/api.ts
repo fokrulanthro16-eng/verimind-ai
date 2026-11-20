@@ -180,6 +180,25 @@ export interface BenchmarkMetrics {
   avg_inference_latency_ms: number;
 }
 
+export interface StressTestScenario {
+  name: string;
+  target_archetype: string;
+  attack_method: string;
+  defense_rate: string;
+  status: string;
+}
+
+export interface StressTestMetrics {
+  stress_f1_score: number;
+  stress_roc_auc: number;
+  paraphrase_resilience_rate: number;
+  preserved_non_native_parity: number;
+  adversarial_samples_tested: number;
+  perturbation_delta_pct: number;
+  adversarial_archetype_breakdown: Record<string, number>;
+  stress_scenarios: StressTestScenario[];
+}
+
 export interface CohortKPIs {
   cohort_size: number;
   verified_mastery_rate: number;
@@ -301,3 +320,56 @@ export async function fetchBenchmark(): Promise<BenchmarkMetrics> {
   if (!res.ok) throw new Error("Failed to fetch model evaluation");
   return res.json();
 }
+
+export async function runStressTest(): Promise<StressTestMetrics> {
+  const res = await fetch(`${API_BASE}/api/eval/stress-test`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Failed to run stress test");
+  return res.json();
+}
+
+export function downloadCohortCSV(cohort: CohortResponse) {
+  const concepts = [
+    "Hash Maps & O(1)",
+    "Recursion & Base Cases",
+    "Edge-Case Guards",
+    "Time Complexity",
+    "Memory & Mutation",
+    "Async & Concurrency",
+  ];
+  const headers = ["Student ID", "Archetype", "Overall Score", ...concepts, "Weakest Concept"];
+  const rows = cohort.matrix.map((row) => [
+    row.student_id,
+    row.archetype,
+    `${(row.overall_score * 100).toFixed(1)}%`,
+    ...concepts.map((c) => `${((row.concepts[c] || 0) * 100).toFixed(0)}%`),
+    row.weakest_concept,
+  ]);
+
+  const csvContent = [headers.join(","), ...rows.map((r) => r.map((cell) => `"${cell}"`).join(","))].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `verimind_lms_gradebook_${Date.now()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+export function downloadCohortJSON(cohort: CohortResponse) {
+  const dataStr = JSON.stringify(cohort, null, 2);
+  const blob = new Blob([dataStr], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `verimind_cohort_export_${Date.now()}.json`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+

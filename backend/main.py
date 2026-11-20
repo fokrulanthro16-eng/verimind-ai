@@ -27,6 +27,7 @@ from schemas import (
     CompetencyPassportRecord,
     HealthResponse,
     BenchmarkMetrics,
+    StressTestMetrics,
     CohortResponse,
     CohortKPIs,
     CohortStudentRow,
@@ -706,3 +707,17 @@ def get_eval_benchmark():
         ml_engine.load_or_train()
 
     return BenchmarkMetrics.model_validate(ml_engine.benchmark_metrics)
+
+
+# ==============================================================
+# 9. ADVERSARIAL RED-TEAM STRESS TEST
+# ==============================================================
+@app.post("/api/eval/stress-test", response_model=StressTestMetrics)
+@app.get("/api/eval/stress-test", response_model=StressTestMetrics)
+def run_adversarial_stress_test():
+    """
+    Executes red-team adversarial evaluation: tests 120 perturbed,
+    paraphrased, and extreme grammar noise vectors against the live calibrated model.
+    """
+    return ml_engine.run_adversarial_stress_test()
+

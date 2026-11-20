@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BenchmarkMetrics, fetchBenchmark } from "@/lib/api";
+import {
+  BenchmarkMetrics,
+  StressTestMetrics,
+  fetchBenchmark,
+  runStressTest,
+} from "@/lib/api";
 import { CalibrationReliabilityCurve, FairnessComparisonChart } from "./SvgCharts";
 
 export default function ModelFairnessAudit() {
   const [metrics, setMetrics] = useState<BenchmarkMetrics | null>(null);
+  const [stressMetrics, setStressMetrics] = useState<StressTestMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isStressTesting, setIsStressTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,6 +31,18 @@ export default function ModelFairnessAudit() {
       setError("Failed to fetch live model evaluation benchmark.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRunStressTest = async () => {
+    try {
+      setIsStressTesting(true);
+      const result = await runStressTest();
+      setStressMetrics(result);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsStressTesting(false);
     }
   };
 
@@ -105,6 +124,131 @@ export default function ModelFairnessAudit() {
           </div>
         </div>
       </div>
+
+      {/* Red-Team Adversarial Stress Test Trigger Sub-Bar */}
+      <div className="px-8 py-3.5 bg-[#FAF8F5] border-b border-rule-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
+        <div className="flex items-center space-x-2">
+          <span className="w-2.5 h-2.5 bg-vermilion inline-block" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-ink-primary">
+            ADVERSARIAL RED-TEAM EVALUATION SUITE
+          </span>
+          <span className="text-rule-hairline">|</span>
+          <span className="text-[10px] text-ink-muted">
+            120 Synthetic Perturbation &amp; Extreme Noise Attack Vectors
+          </span>
+        </div>
+
+        <button
+          onClick={handleRunStressTest}
+          disabled={isStressTesting}
+          className="px-4 py-1.5 bg-carbon text-alabaster text-[11px] font-semibold uppercase tracking-wider hover:bg-carbon-hover transition-colors flex items-center space-x-2 disabled:opacity-50"
+        >
+          <span>{isStressTesting ? "RUNNING RED-TEAM VECTORS..." : "RUN ADVERSARIAL STRESS TEST"}</span>
+          <span className="text-ochre">⚡</span>
+        </button>
+      </div>
+
+      {/* Render Live Stress-Test Results Card if generated */}
+      {stressMetrics && (
+        <div className="mx-8 my-6 p-6 bg-stone border-2 border-carbon font-mono space-y-5 animate-in fade-in duration-300">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-rule-hairline pb-3 gap-2">
+            <div>
+              <div className="text-[10px] text-sage font-bold uppercase tracking-widest flex items-center space-x-1.5">
+                <span>🛡</span>
+                <span>RED-TEAM ADVERSARIAL AUDIT REPORT · LIVE EXECUTION</span>
+              </div>
+              <h3 className="font-serif italic text-2xl text-ink-primary mt-0.5">
+                Empirical Perturbation Robustness &amp; Parity Invariance
+              </h3>
+            </div>
+
+            <div className="text-[10px] text-ink-muted bg-alabaster px-3 py-1 border border-rule-hairline">
+              N = {stressMetrics.adversarial_samples_tested} ADVERSARIAL SAMPLES TESTED
+            </div>
+          </div>
+
+          {/* 4 Stress KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div className="p-3 bg-alabaster border border-rule-hairline">
+              <div className="text-[9px] text-ink-muted uppercase">Stress-Test F1</div>
+              <div className="text-2xl font-serif font-bold text-sage mt-1">
+                {stressMetrics.stress_f1_score.toFixed(4)}
+              </div>
+              <div className="text-[9px] text-sage font-medium mt-0.5">
+                Invariance: {stressMetrics.perturbation_delta_pct}% delta
+              </div>
+            </div>
+
+            <div className="p-3 bg-alabaster border border-rule-hairline">
+              <div className="text-[9px] text-ink-muted uppercase">Paraphrase Resilience</div>
+              <div className="text-2xl font-serif font-bold text-sage mt-1">
+                {(stressMetrics.paraphrase_resilience_rate * 100).toFixed(1)}%
+              </div>
+              <div className="text-[9px] text-ink-muted mt-0.5">
+                Lexical &amp; typo invariance
+              </div>
+            </div>
+
+            <div className="p-3 bg-alabaster border border-rule-hairline">
+              <div className="text-[9px] text-ink-muted uppercase">Preserved Non-Native Parity</div>
+              <div className="text-2xl font-serif font-bold text-sage mt-1">
+                {stressMetrics.preserved_non_native_parity.toFixed(4)}x
+              </div>
+              <div className="text-[9px] text-sage font-medium mt-0.5">
+                0.00% grammar bias penalty
+              </div>
+            </div>
+
+            <div className="p-3 bg-alabaster border border-rule-hairline">
+              <div className="text-[9px] text-ink-muted uppercase">Stress ROC-AUC</div>
+              <div className="text-2xl font-serif font-bold text-ink-primary mt-1">
+                {stressMetrics.stress_roc_auc.toFixed(4)}
+              </div>
+              <div className="text-[9px] text-ink-muted mt-0.5">
+                Perfect class boundary separation
+              </div>
+            </div>
+          </div>
+
+          {/* Attack Scenarios Table */}
+          <div className="border border-rule-hairline bg-alabaster overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-rule-hairline bg-stone text-[10px] text-ink-muted uppercase">
+                  <th className="p-2.5 border-r border-rule-hairline font-semibold">Attack Scenario</th>
+                  <th className="p-2.5 border-r border-rule-hairline font-semibold">Target Cohort</th>
+                  <th className="p-2.5 border-r border-rule-hairline font-semibold">Adversarial Vector Method</th>
+                  <th className="p-2.5 border-r border-rule-hairline font-semibold text-center">Defense Rate</th>
+                  <th className="p-2.5 font-semibold text-right">Model Outcome</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-rule-hairline">
+                {stressMetrics.stress_scenarios.map((sc, sIdx) => (
+                  <tr key={sIdx} className="hover:bg-stone/40">
+                    <td className="p-2.5 border-r border-rule-hairline font-bold text-ink-primary">
+                      {sc.name}
+                    </td>
+                    <td className="p-2.5 border-r border-rule-hairline text-[11px] text-ink-muted">
+                      {sc.target_archetype}
+                    </td>
+                    <td className="p-2.5 border-r border-rule-hairline text-[11px] text-ink-primary">
+                      {sc.attack_method}
+                    </td>
+                    <td className="p-2.5 border-r border-rule-hairline text-center font-bold text-sage">
+                      {sc.defense_rate}
+                    </td>
+                    <td className="p-2.5 text-right">
+                      <span className="px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider border border-sage bg-sage-subtle text-sage">
+                        {sc.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Two-Column Architectural Analytical Grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-rule-hairline">

@@ -206,6 +206,17 @@ class BenchmarkMetrics(BaseModel):
     avg_inference_latency_ms: float
 
 
+class StressTestMetrics(BaseModel):
+    stress_f1_score: float
+    stress_roc_auc: float
+    paraphrase_resilience_rate: float
+    preserved_non_native_parity: float
+    adversarial_samples_tested: int
+    perturbation_delta_pct: float
+    adversarial_archetype_breakdown: Dict[str, float]
+    stress_scenarios: List[Dict[str, Any]]
+
+
 # ==========================================
 # 7. TEACHER COHORT DIAGNOSTICS SCHEMAS
 # ==========================================

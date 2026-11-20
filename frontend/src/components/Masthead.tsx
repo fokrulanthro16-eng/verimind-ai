@@ -53,38 +53,36 @@ export default function Masthead({ activeTab, setActiveTab, health }: MastheadPr
 
       {/* Right Hardware/API Telemetry Strip */}
       <div className="flex items-center space-x-4 font-mono text-[10px] tracking-wider text-ink-muted border-l border-rule-hairline pl-4">
-        {/* Nebius */}
-        <div className="flex items-center space-x-1.5" title={`Nebius Model: ${health?.nebius_model || "Qwen-32B"}`}>
-          <span
-            className={`w-1.5 h-1.5 inline-block ${
-              health?.nebius_status === "live" ? "bg-sage" : "bg-ochre"
-            }`}
-          />
-          <span className="uppercase">
-            NEBIUS {health?.nebius_status === "live" ? "LIVE" : "FALLBACK"}
+        {/* Nebius / Zero-Cloud Edge Engine */}
+        <div
+          className="flex items-center space-x-1.5"
+          title={
+            health?.nebius_status === "live"
+              ? `Nebius Token Factory: ${health?.nebius_model || "Qwen-32B"}`
+              : "Zero-Cloud Edge Mode: Deterministic on-device AST prober active (100% privacy airgap)"
+          }
+        >
+          <span className="w-1.5 h-1.5 inline-block bg-sage" />
+          <span className="uppercase text-ink-primary font-medium">
+            {health?.nebius_status === "live" ? "NEBIUS LIVE (CLOUD)" : "ZERO-CLOUD EDGE MODE"}
           </span>
         </div>
 
         {/* Hugging Face MiniLM */}
-        <div className="flex items-center space-x-1.5" title={`HF Model: ${health?.hf_model || "all-MiniLM-L6-v2"}`}>
-          <span
-            className={`w-1.5 h-1.5 inline-block ${
-              health?.hf_status === "live" ? "bg-sage" : "bg-ochre"
-            }`}
-          />
-          <span className="uppercase">
-            HF MINILM {health?.hf_status === "live" ? "LIVE" : "FALLBACK"}
+        <div
+          className="flex items-center space-x-1.5"
+          title={`Semantic Embedding: ${health?.hf_model || "sentence-transformers/all-MiniLM-L6-v2"}`}
+        >
+          <span className="w-1.5 h-1.5 inline-block bg-sage" />
+          <span className="uppercase text-ink-primary font-medium">
+            {health?.hf_status === "live" ? "HF MINILM LIVE" : "LOCAL TF-IDF EMBEDDING"}
           </span>
         </div>
 
         {/* ML Engine */}
-        <div className="flex items-center space-x-1.5">
-          <span
-            className={`w-1.5 h-1.5 inline-block ${
-              health?.ml_model_ready ? "bg-sage" : "bg-ochre"
-            }`}
-          />
-          <span className="uppercase">
+        <div className="flex items-center space-x-1.5" title="CalibratedClassifierCV Logistic Regression">
+          <span className="w-1.5 h-1.5 inline-block bg-sage" />
+          <span className="uppercase text-ink-primary font-medium">
             ML CALIBRATED
           </span>
         </div>

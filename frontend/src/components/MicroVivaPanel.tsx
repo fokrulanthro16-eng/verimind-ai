@@ -34,6 +34,85 @@ export default function MicroVivaPanel({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [countdown, setCountdown] = useState(30);
 
+  // Web Speech API states
+  const [isListening, setIsListening] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleVoiceDefense = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch {}
+      }
+      setIsListening(false);
+      return;
+    }
+
+    setSpeechError(null);
+    if (typeof window === "undefined") return;
+
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setSpeechError(
+        "Web Speech API not supported in this browser. Please type your defense into the composer."
+      );
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError(null);
+      };
+
+      recognition.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript + " ";
+          }
+        }
+        if (transcript) {
+          setAnswerText((prev) =>
+            prev ? `${prev.trim()} ${transcript.trim()}` : transcript.trim()
+          );
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.warn("Speech recognition notice:", event.error);
+        if (event.error === "not-allowed" || event.error === "permission-denied") {
+          setSpeechError(
+            "Microphone permission was dismissed or blocked. Text input remains active."
+          );
+        } else if (event.error !== "no-speech") {
+          setSpeechError(`Voice input notice: ${event.error}`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error(err);
+      setSpeechError("Could not initialize voice recording. Please use text input.");
+      setIsListening(false);
+    }
+  };
+
   // Set answerText when preAuthoredAnswer changes
   useEffect(() => {
     if (preAuthoredAnswer) {
@@ -232,16 +311,50 @@ export default function MicroVivaPanel({
           onSubmit={handleSubmit}
           className="p-4 border-t border-rule-hairline bg-stone"
         >
+          <div className="flex items-center justify-between mb-2 select-none">
+            <span className="font-mono text-[10px] uppercase text-ink-muted font-semibold tracking-wider">
+              Student Defense Input:
+            </span>
+
+            {/* Live Web Speech API Voice Viva Button */}
+            <button
+              type="button"
+              onClick={toggleVoiceDefense}
+              className={`px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider flex items-center space-x-1.5 border transition-all ${
+                isListening
+                  ? "bg-vermilion text-alabaster border-vermilion animate-pulse font-bold"
+                  : "bg-alabaster text-ink-primary border-rule-hairline hover:bg-stone"
+              }`}
+              title="Record oral viva defense using browser Web Speech API"
+            >
+              <span>{isListening ? "🔴" : "🎙"}</span>
+              <span>{isListening ? "LISTENING (CLICK TO STOP)" : "START VOICE DEFENSE (MIC)"}</span>
+            </button>
+          </div>
+
           <div className="relative">
             <textarea
               rows={3}
               value={answerText}
               onChange={(e) => setAnswerText(e.target.value)}
               onPaste={handlePaste}
-              placeholder="State the algorithmic mechanism, line reference, or invariant rationale..."
+              placeholder="State the algorithmic mechanism, line reference, or invariant rationale (type or use mic)..."
               className="w-full p-3 font-mono text-xs bg-alabaster border border-rule-hairline text-ink-primary focus:outline-none focus:border-ink-primary resize-none placeholder:text-ink-muted/50"
             />
           </div>
+
+          {speechError && (
+            <div className="mt-2 text-[10px] font-mono text-vermilion bg-vermilion-subtle border border-vermilion-border p-2 flex justify-between items-center">
+              <span>{speechError}</span>
+              <button
+                type="button"
+                onClick={() => setSpeechError(null)}
+                className="font-bold text-ink-primary hover:text-vermilion ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <div className="mt-2.5 flex items-center justify-between">
             <div className="text-[10px] font-mono text-ink-muted flex items-center space-x-3">
