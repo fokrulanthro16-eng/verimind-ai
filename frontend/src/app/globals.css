@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-alabaster: #F5F3EE;
+  --bg-stone: #ECE8DF;
+  --bg-carbon: #121211;
+  --ink-primary: #141413;
+  --ink-muted: #68645B;
+  --rule-hairline: #D6D1C7;
+  --accent-sage: #1F6346;
+  --accent-vermilion: #D14326;
+  --accent-ochre: #B87218;
+}
+
+body {
+  background-color: var(--bg-alabaster);
+  color: var(--ink-primary);
+  font-family: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-image: radial-gradient(rgba(20, 20, 19, 0.035) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Swiss Editorial Archival Borders & Hairlines */
+.border-hairline {
+  border-color: var(--rule-hairline);
+}
+
+.border-carbon-hairline {
+  border-color: #2E2D2A;
+}
+
+/* Monospace micro labels */
+.micro-label {
+  font-family: var(--font-jetbrains), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* Custom crisp scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #ECE8DF;
+}
+::-webkit-scrollbar-thumb {
+  background: #D6D1C7;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #68645B;
+}
+
+/* Smooth active line highlight for forensic code ledger */
+.active-ast-target-line {
+  background-color: #E8E2D4;
+  border-left: 2px solid #D14326 !important;
+}
