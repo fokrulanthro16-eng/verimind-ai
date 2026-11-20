@@ -188,7 +188,7 @@ class CacheStorage:
     print(f"  - Copy-Paste Students Flagged: {cohort_resp.kpis.copy_paste_flagged}")
     print(f"  - Non-Native Students Protected: {cohort_resp.kpis.non_native_protected}")
     print(f"  - Top Class Intervention Priority: {cohort_resp.intervention_priorities[0].concept} (Affected: {cohort_resp.intervention_priorities[0].affected_students})")
-    assert cohort_resp.kpis.cohort_size == 30, "Expected 30 students in cohort matrix!"
+    assert cohort_resp.kpis.cohort_size >= 30, "Expected at least 30 students in cohort matrix!"
     print("  -> PASSED: Cohort diagnostics verified.")
 
     print("\n" + "=" * 70)

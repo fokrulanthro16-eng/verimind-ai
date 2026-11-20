@@ -51,7 +51,7 @@ class ASTEdgeGuard(BaseModel):
 
 
 class StructuralDependencyMap(BaseModel):
-    domain: Literal["code", "essay"] = "code"
+    domain: Literal["code", "python", "javascript", "sql", "essay"] = "python"
     functions: List[ASTFunction] = Field(default_factory=list)
     classes: List[ASTClass] = Field(default_factory=list)
     data_structures: List[str] = Field(default_factory=list)
@@ -83,7 +83,7 @@ class MicroVivaTurn(BaseModel):
 class SubmissionRequest(BaseModel):
     content: str
     student_label: Optional[str] = "Student"
-    domain: Literal["code", "essay"] = "code"
+    domain: Literal["code", "python", "javascript", "sql", "essay"] = "python"
 
 
 class AnalyzeSubmissionResponse(BaseModel):
@@ -147,6 +147,7 @@ class CompetencyPassportRecord(BaseModel):
     remediation_plan: SocraticRemediation
     submission_content: Optional[str] = None
     ast_signature: Optional[str] = None
+    domain: Optional[str] = "python"
 
 
 # ==========================================

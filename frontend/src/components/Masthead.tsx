@@ -7,13 +7,15 @@ interface MastheadProps {
   activeTab: number;
   setActiveTab: (tab: number) => void;
   health: HealthResponse | null;
+  onOpenIntegrationModal?: () => void;
 }
 
-export default function Masthead({ activeTab, setActiveTab, health }: MastheadProps) {
+export default function Masthead({ activeTab, setActiveTab, health, onOpenIntegrationModal }: MastheadProps) {
   const tabs = [
     { id: 1, label: "01. LIVE ASSESSMENT" },
     { id: 2, label: "02. COHORT DIAGNOSTICS" },
     { id: 3, label: "03. MODEL & FAIRNESS AUDIT" },
+    { id: 4, label: "04. VERIFY CREDENTIAL" },
   ];
 
   return (
@@ -51,9 +53,21 @@ export default function Masthead({ activeTab, setActiveTab, health }: MastheadPr
         })}
       </nav>
 
-      {/* Right Hardware/API Telemetry Strip */}
-      <div className="flex items-center space-x-4 font-mono text-[10px] tracking-wider text-ink-muted border-l border-rule-hairline pl-4">
-        {/* Nebius / Zero-Cloud Edge Engine */}
+      {/* Center Right Actions & Hardware/API Telemetry Strip */}
+      <div className="flex items-center space-x-4 font-mono text-[10px] tracking-wider text-ink-muted">
+        {onOpenIntegrationModal && (
+          <button
+            onClick={onOpenIntegrationModal}
+            className="px-3 py-1.5 bg-carbon text-alabaster font-mono text-[10px] uppercase tracking-wider font-semibold hover:bg-carbon-hover transition-colors flex items-center space-x-1.5 shadow-sm"
+            title="Open B2B API developer kit, cURL snippets, and LMS LTI 1.3 integration specifications"
+          >
+            <span className="text-ochre">⚡</span>
+            <span>API & LMS INTEGRATION</span>
+          </button>
+        )}
+
+        <div className="flex items-center space-x-4 border-l border-rule-hairline pl-4">
+          {/* Nebius / Zero-Cloud Edge Engine */}
         <div
           className="flex items-center space-x-1.5"
           title={
@@ -85,6 +99,7 @@ export default function Masthead({ activeTab, setActiveTab, health }: MastheadPr
           <span className="uppercase text-ink-primary font-medium">
             ML CALIBRATED
           </span>
+        </div>
         </div>
       </div>
     </header>

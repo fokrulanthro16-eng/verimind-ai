@@ -53,7 +53,7 @@ export interface ASTEdgeGuard {
 }
 
 export interface StructuralDependencyMap {
-  domain: "code" | "essay";
+  domain: "code" | "essay" | "python" | "javascript" | "sql";
   functions: ASTFunction[];
   classes: ASTClass[];
   data_structures: string[];
@@ -127,6 +127,7 @@ export interface CompetencyPassportRecord {
   remediation_plan: SocraticRemediation;
   submission_content?: string;
   ast_signature?: string;
+  domain?: string;
 }
 
 export interface DemoTurn {
@@ -146,7 +147,7 @@ export interface DemoCase {
   title: string;
   description: string;
   student_label: string;
-  domain: "code" | "essay";
+  domain: "code" | "essay" | "python" | "javascript" | "sql";
   code: string;
   legacy_detector_verdict: string;
   legacy_ai_probability: number;
@@ -246,7 +247,7 @@ export async function fetchDemoCases(): Promise<DemoCase[]> {
 export async function analyzeSubmission(
   content: string,
   studentLabel: string = "Student",
-  domain: "code" | "essay" = "code"
+  domain: "code" | "essay" | "python" | "javascript" | "sql" = "python"
 ): Promise<AnalyzeSubmissionResponse> {
   const res = await fetch(`${API_BASE}/api/analyze-submission`, {
     method: "POST",

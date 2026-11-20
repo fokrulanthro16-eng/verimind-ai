@@ -28,9 +28,103 @@ interface CompletedTurnEntry {
   result: VivaTurnResponse;
 }
 
+const DOMAIN_STARTERS: Record<string, string> = {
+  python: `# Python: Sliding-Window Rate Limiter Invariant
+from collections import OrderedDict
+import time
+
+class SlidingWindowBuffer:
+    def __init__(self, max_capacity: int = 100):
+        self.capacity = max_capacity
+        self.window_map = OrderedDict()  # Line 08: FIFO key order tracking
+
+    def record_event(self, key: str, timestamp: float) -> bool:
+        if not key or timestamp <= 0:
+            return False  # Line 12: Defensive guard on invalid inputs
+
+        if key in self.window_map:
+            self.window_map.move_to_end(key)
+        self.window_map[key] = timestamp
+
+        if len(self.window_map) > self.capacity:
+            self.window_map.popitem(last=False)
+        return True
+`,
+  javascript: `// JavaScript / TS: Resilient Concurrency Queue with Map Memoization
+class ResilientTaskQueue {
+  constructor(concurrency = 4, maxRetries = 3) {
+    this.concurrency = concurrency;
+    this.maxRetries = maxRetries;
+    this.activeWorkers = 0;
+    this.pendingQueue = [];
+    this.taskCache = new Map(); // Line 08: Key-value memoization
+  }
+
+  async executeTask(taskId, taskFn) {
+    if (!taskId || typeof taskFn !== 'function') {
+      throw new TypeError('Invalid task parameter'); // Line 13: Type guard
+    }
+
+    if (this.taskCache.has(taskId)) {
+      return this.taskCache.get(taskId);
+    }
+
+    while (this.activeWorkers >= this.concurrency) {
+      await new Promise(resolve => this.pendingQueue.push(resolve));
+    }
+
+    this.activeWorkers++;
+    try {
+      const result = await taskFn();
+      this.taskCache.set(taskId, result);
+      return result;
+    } finally {
+      this.activeWorkers--;
+      const nextWorker = this.pendingQueue.shift();
+      if (nextWorker) nextWorker();
+    }
+  }
+}
+`,
+  sql: `-- SQL: Analytical Window Function Partition & Indexed B-Tree Join
+WITH CohortActivity AS (
+  SELECT 
+    user_id,
+    session_id,
+    action_type,
+    created_at,
+    ROW_NUMBER() OVER (
+      PARTITION BY user_id 
+      ORDER BY created_at DESC
+    ) AS activity_rank -- Line 10: Analytical window ranking
+  FROM telemetry_events
+  WHERE created_at >= NOW() - INTERVAL '30 days' -- Line 12: Partition pruning
+    AND user_id IS NOT NULL -- Line 13: Defensive NULL filter
+)
+SELECT 
+  c.user_id,
+  u.account_tier,
+  COUNT(c.session_id) AS total_events,
+  MAX(c.created_at) AS last_active_timestamp
+FROM CohortActivity c
+INNER JOIN user_accounts u 
+  ON c.user_id = u.id -- Line 23: Indexed foreign key join
+WHERE c.activity_rank <= 10
+GROUP BY c.user_id, u.account_tier
+HAVING COUNT(c.session_id) >= 3;
+`,
+  essay: `Title: Algorithmic Accountability and the Epistemic Limits of Surveillance Proctoring
+
+Surveillance-based biometric proctoring systems operate under the implicit epistemic premise that gaze vector variance, keystroke latency, and facial boundary jitter reliably predict cognitive dishonesty. However, empirical evaluation demonstrates that these proxy metrics disproportionately penalize non-native English speakers and neurodivergent candidates, introducing profound systemic bias without establishing true proof-of-understanding.
+
+Therefore, higher education institutions must transition from behavioral surveillance toward structural cognitive authenticity models. By examining conceptual invariants, counterfactual reasoning, and code mechanism transfer through zero-spyware interactive Socratic probing, educators can verify authentic understanding while strictly maintaining a zero-penalty fairness shield. Consequently, privacy preservation and pedagogical rigor cease to be mutually exclusive objectives.
+`,
+};
+
 export default function AssessmentWorkspace({ demos }: AssessmentWorkspaceProps) {
   // Active selected dossier ("case_a", "case_b", "case_c", "sandbox")
   const [selectedCaseId, setSelectedCaseId] = useState<string>("case_a");
+  const [sandboxDomain, setSandboxDomain] = useState<"python" | "javascript" | "sql" | "essay">("python");
 
   // State for active session
   const [codeContent, setCodeContent] = useState<string>("");
@@ -55,10 +149,9 @@ export default function AssessmentWorkspace({ demos }: AssessmentWorkspaceProps)
   // Load selected demo case on change
   useEffect(() => {
     if (selectedCaseId === "sandbox") {
-      setCodeContent(
-        '# Custom Code / Essay Sandbox\ndef process_items(items):\n    # Add your code here\n    store = {}\n    return True\n'
-      );
-      resetSession();
+      const template = DOMAIN_STARTERS[sandboxDomain] || DOMAIN_STARTERS.python;
+      setCodeContent(template);
+      initSessionForCode(template, "Sandbox Candidate", sandboxDomain);
     } else {
       const match = demos.find((d) => d.id === selectedCaseId);
       if (match) {
@@ -67,6 +160,13 @@ export default function AssessmentWorkspace({ demos }: AssessmentWorkspaceProps)
       }
     }
   }, [selectedCaseId, demos]);
+
+  const handleDomainSwitch = (newDomain: "python" | "javascript" | "sql" | "essay") => {
+    setSandboxDomain(newDomain);
+    const template = DOMAIN_STARTERS[newDomain] || DOMAIN_STARTERS.python;
+    setCodeContent(template);
+    initSessionForCode(template, "Sandbox Candidate", newDomain);
+  };
 
   const resetSession = () => {
     setSessionId(null);
@@ -81,7 +181,7 @@ export default function AssessmentWorkspace({ demos }: AssessmentWorkspaceProps)
   const initSessionForCode = async (
     content: string,
     studentLabel: string = "Student",
-    domain: "code" | "essay" = "code"
+    domain: "code" | "essay" | "python" | "javascript" | "sql" = "python"
   ) => {
     try {
       setIsLoading(true);
@@ -277,9 +377,11 @@ export default function AssessmentWorkspace({ demos }: AssessmentWorkspaceProps)
             targetLine={currentTurn?.target_line || null}
             legacyPreview={legacyPreview}
             isSandbox={selectedCaseId === "sandbox"}
+            selectedDomain={sandboxDomain}
+            onDomainChange={handleDomainSwitch}
             onCodeChange={(newCode) => setCodeContent(newCode)}
             onAnalyzeCustom={() =>
-              initSessionForCode(codeContent, "Custom Student", "code")
+              initSessionForCode(codeContent, "Sandbox Candidate", sandboxDomain)
             }
             isLoading={isLoading}
           />

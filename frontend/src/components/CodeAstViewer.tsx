@@ -18,6 +18,8 @@ interface CodeAstViewerProps {
     is_false_positive_risk?: boolean;
   } | null;
   isSandbox: boolean;
+  selectedDomain?: "python" | "javascript" | "sql" | "essay";
+  onDomainChange?: (domain: "python" | "javascript" | "sql" | "essay") => void;
   onCodeChange?: (newCode: string) => void;
   onAnalyzeCustom?: () => void;
   isLoading?: boolean;
@@ -30,6 +32,8 @@ export default function CodeAstViewer({
   targetLine,
   legacyPreview,
   isSandbox,
+  selectedDomain = "python",
+  onDomainChange,
   onCodeChange,
   onAnalyzeCustom,
   isLoading,
@@ -81,6 +85,42 @@ export default function CodeAstViewer({
           )}
         </div>
       </div>
+
+      {/* Multi-Discipline Domain Selector Bar (Sandbox Mode) */}
+      {isSandbox && (
+        <div className="h-10 px-4 bg-[#EDEAE3] border-b border-rule-hairline flex items-center justify-between font-mono text-[11px] select-none">
+          <div className="flex items-center space-x-1.5 overflow-x-auto py-1">
+            <span className="text-[10px] text-ink-muted uppercase font-bold mr-1">
+              DISCIPLINE:
+            </span>
+            {[
+              { id: "python", label: "Python" },
+              { id: "javascript", label: "JavaScript / TS" },
+              { id: "sql", label: "SQL" },
+              { id: "essay", label: "Academic Essay / Case Study" },
+            ].map((d) => {
+              const active = selectedDomain === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => onDomainChange && onDomainChange(d.id as any)}
+                  className={`px-2.5 py-1 text-[10px] uppercase font-semibold tracking-wider transition-colors border whitespace-nowrap ${
+                    active
+                      ? "bg-carbon text-alabaster border-carbon"
+                      : "bg-alabaster text-ink-muted border-rule-hairline hover:text-ink-primary"
+                  }`}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="hidden sm:block text-[10px] text-sage font-semibold uppercase tracking-wider flex-shrink-0 ml-2">
+            ✓ 0.00% GRAMMAR BIAS SHIELD ACTIVE
+          </div>
+        </div>
+      )}
 
       {/* Main Code & Margin Annotations Canvas */}
       <div className="flex-1 overflow-auto relative">

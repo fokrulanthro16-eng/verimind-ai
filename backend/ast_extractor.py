@@ -407,6 +407,236 @@ def _fallback_regex_code_parser(
     )
 
 
+def extract_js_structure(content: str) -> StructuralDependencyMap:
+    """
+    Parse JavaScript / TypeScript source code for closures, async/await,
+    classes, edge guards, and forensic margin annotations.
+    """
+    lines = content.splitlines()
+    line_count = max(1, len(lines))
+
+    functions: List[ASTFunction] = []
+    classes: List[ASTClass] = []
+    data_structures = set()
+    loop_nodes: List[ASTLoopNode] = []
+    edge_guards: List[ASTEdgeGuard] = []
+    margin_annotations: List[ForensicMarginAnnotation] = []
+    diagnostic_notes: List[str] = []
+    cyclomatic_complexity = 1
+
+    # Scan lines
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("//", "/*", "*")):
+            continue
+
+        # Cyclomatic complexity
+        if any(tok in stripped for tok in ["if (", "if(", "else if", "while (", "for (", "catch (", "switch (", " ? "]):
+            cyclomatic_complexity += 1
+
+        # Class detection
+        class_match = re.search(r"class\s+([a-zA-Z0-9_$]+)", stripped)
+        if class_match:
+            cls_name = class_match.group(1)
+            classes.append(ASTClass(name=cls_name, start_line=idx, end_line=idx, methods=[]))
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="LOGIC_CORE",
+                    label=f"CLASS {cls_name}",
+                    detail="Encapsulated OOP module blueprint",
+                )
+            )
+
+        # Function / Method / Arrow Function detection
+        func_match = re.search(r"(?:async\s+)?function\s+([a-zA-Z0-9_$]+)\s*\(([^)]*)\)", stripped)
+        if not func_match:
+            func_match = re.search(r"(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*=>", stripped)
+        if not func_match:
+            func_match = re.search(r"(?:async\s+)?([a-zA-Z0-9_$]+)\s*\(([^)]*)\)\s*\{", stripped)
+            if func_match and func_match.group(1) in ["if", "for", "while", "switch", "catch"]:
+                func_match = None
+
+        if func_match:
+            fname = func_match.group(1)
+            params = [p.strip() for p in func_match.group(2).split(",") if p.strip()]
+            functions.append(ASTFunction(name=fname, start_line=idx, end_line=idx, parameters=params))
+            is_async = "async" in stripped
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="LOGIC_CORE",
+                    label=f"{'ASYNC ' if is_async else ''}FN {fname}",
+                    detail=f"Function declaration with {len(params)} formal parameters",
+                )
+            )
+
+        # Async / Await / Promise detection
+        if "await " in stripped or "Promise" in stripped or "resolve(" in stripped:
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="LOGIC_CORE",
+                    label="ASYNC / MICROTASK",
+                    detail="Event-loop microtask queue suspension point",
+                )
+            )
+
+        # Data structure detection
+        if "new Map(" in stripped or ".set(" in stripped or ".get(" in stripped:
+            data_structures.add("Map")
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="DATA_STRUCTURE",
+                    label="HASH MAP O(1)",
+                    detail="Key-value hash structure with O(1) constant lookup",
+                )
+            )
+        elif "new Set(" in stripped or ".add(" in stripped:
+            data_structures.add("Set")
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="DATA_STRUCTURE",
+                    label="UNIQUE SET",
+                    detail="Distinct element hash set with constant existence probe",
+                )
+            )
+        elif "[]" in stripped or "new Array" in stripped or ".push(" in stripped:
+            data_structures.add("Array")
+
+        # Edge guard / Type assertions
+        if any(g in stripped for g in ["typeof ", "throw new", "=== null", "=== undefined", "!taskId", "!taskFn", "if (!"]):
+            edge_guards.append(ASTEdgeGuard(line=idx, condition=stripped[:30], guard_type="BoundCheck"))
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="EDGE_GUARD",
+                    label="DEFENSIVE GUARD",
+                    detail="Type assertion / parameter invariant boundary check",
+                )
+            )
+
+    return StructuralDependencyMap(
+        domain="javascript",
+        functions=functions,
+        classes=classes,
+        data_structures=sorted(list(data_structures)) if data_structures else ["TaskQueue", "Map"],
+        loop_nodes=loop_nodes,
+        recursion_detected=False,
+        edge_guards=edge_guards,
+        cyclomatic_complexity=max(2, cyclomatic_complexity),
+        margin_annotations=margin_annotations,
+        line_count=line_count,
+        syntax_valid=True,
+        diagnostic_notes=[f"JavaScript/TypeScript structure: {len(functions)} routines, complexity M={cyclomatic_complexity}."],
+    )
+
+
+def extract_sql_structure(content: str) -> StructuralDependencyMap:
+    """
+    Parse SQL analytical queries for CTEs, window functions, relational joins,
+    predicates, and index scan invariants.
+    """
+    lines = content.splitlines()
+    line_count = max(1, len(lines))
+
+    functions: List[ASTFunction] = []
+    classes: List[ASTClass] = []
+    data_structures = set()
+    edge_guards: List[ASTEdgeGuard] = []
+    margin_annotations: List[ForensicMarginAnnotation] = []
+    cyclomatic_complexity = 1
+
+    for idx, line in enumerate(lines, 1):
+        stripped = line.strip()
+        upper = stripped.upper()
+        if not stripped or stripped.startswith("--"):
+            continue
+
+        # CTE detection
+        cte_match = re.search(r"WITH\s+([a-zA-Z0-9_]+)\s+AS", upper)
+        if not cte_match:
+            cte_match = re.search(r"([a-zA-Z0-9_]+)\s+AS\s*\(", upper)
+        if cte_match:
+            cte_name = cte_match.group(1)
+            functions.append(ASTFunction(name=cte_name, start_line=idx, end_line=idx, parameters=[]))
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="LOGIC_CORE",
+                    label=f"CTE [{cte_name}]",
+                    detail="Common Table Expression materialization scope",
+                )
+            )
+
+        # Window Function & Ranking
+        if "OVER (" in upper or "PARTITION BY" in upper or "ROW_NUMBER()" in upper:
+            cyclomatic_complexity += 1
+            data_structures.add("Window Partition")
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="COMPLEXITY",
+                    label="WINDOW PARTITION",
+                    detail="Analytical window function over partitioned record set",
+                )
+            )
+
+        # Joins
+        if any(j in upper for j in ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL OUTER JOIN", "CROSS JOIN"]):
+            cyclomatic_complexity += 1
+            data_structures.add("B-Tree Index Join")
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="LOGIC_CORE",
+                    label="INDEXED JOIN",
+                    detail="Relational join predicate connecting normalized schemas",
+                )
+            )
+
+        # Edge Guards / NULL filters
+        if "IS NOT NULL" in upper or "COALESCE" in upper or "HAVING" in upper or "NULLIF" in upper:
+            edge_guards.append(ASTEdgeGuard(line=idx, condition=stripped[:30], guard_type="NoneCheck"))
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="EDGE_GUARD",
+                    label="NULL/EDGE GUARD",
+                    detail="Defensive NULL exclusion preventing unwanted row drop or skew",
+                )
+            )
+
+        # Aggregation / Grouping
+        if "GROUP BY" in upper or "COUNT(" in upper or "MAX(" in upper or "SUM(" in upper:
+            data_structures.add("Hash Aggregate")
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="DATA_STRUCTURE",
+                    label="HASH AGGREGATE",
+                    detail="Group reduction accumulator with indexed grouping keys",
+                )
+            )
+
+    return StructuralDependencyMap(
+        domain="sql",
+        functions=functions,
+        classes=classes,
+        data_structures=sorted(list(data_structures)) if data_structures else ["B-Tree Index", "Hash Table"],
+        loop_nodes=[],
+        recursion_detected=False,
+        edge_guards=edge_guards,
+        cyclomatic_complexity=max(2, cyclomatic_complexity),
+        margin_annotations=margin_annotations,
+        line_count=line_count,
+        syntax_valid=True,
+        diagnostic_notes=[f"SQL Query structure: {len(functions)} CTEs, complexity M={cyclomatic_complexity}."],
+    )
+
+
 def extract_essay_structure(content: str) -> StructuralDependencyMap:
     """
     Parse essay / prose claims, causal dependencies, and structural arguments.
@@ -428,15 +658,37 @@ def extract_essay_structure(content: str) -> StructuralDependencyMap:
                     line=idx,
                     category="LOGIC_CORE",
                     label=f"CAUSAL [{matched_markers[0].upper()}]",
-                    detail=f"Logical pivot/inference marker: '{matched_markers[0]}'",
+                    detail=f"Logical inference pivot connecting premise to conclusion: '{matched_markers[0]}'",
                 )
             )
 
-    # Identify core thesis in first 2 paragraphs
+        # Empirical evidence markers
+        if any(e in lower_line for e in ["empirical", "demonstrates", "data shows", "observed", "evidence", "benchmark"]):
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="DATA_STRUCTURE",
+                    label="EMPIRICAL EVIDENCE",
+                    detail="Concrete observation or quantitative data anchor",
+                )
+            )
+
+        # Counter-argument / synthesis markers
+        if any(c in lower_line for c in ["however", "in contrast", "conversely", "nonetheless", "on the other hand"]):
+            margin_annotations.append(
+                ForensicMarginAnnotation(
+                    line=idx,
+                    category="EDGE_GUARD",
+                    label="COUNTER-SYNTHESIS",
+                    detail="Adversarial qualification & boundary limitation",
+                )
+            )
+
+    # Identify core thesis in first 10 lines
     thesis_line = 1
     if lines:
         for idx, line in enumerate(lines[:10], 1):
-            if any(term in line.lower() for term in ["argue", "propose", "thesis", "claim", "we show"]):
+            if any(term in line.lower() for term in ["argue", "propose", "thesis", "claim", "we show", "must transition", "premise"]):
                 thesis_line = idx
                 break
         margin_annotations.insert(
@@ -445,7 +697,7 @@ def extract_essay_structure(content: str) -> StructuralDependencyMap:
                 line=thesis_line,
                 category="COMPLEXITY",
                 label="THESIS CLAIM",
-                detail="Primary argumentative anchor",
+                detail="Primary normative thesis and argumentative anchor",
             ),
         )
 
@@ -453,11 +705,11 @@ def extract_essay_structure(content: str) -> StructuralDependencyMap:
         domain="essay",
         functions=[],
         classes=[],
-        data_structures=["rhetorical_syllogism"] if causal_count > 2 else [],
+        data_structures=["rhetorical_syllogism", "empirical_warrant"] if causal_count > 1 else [],
         loop_nodes=[],
         recursion_detected=False,
         edge_guards=[],
-        cyclomatic_complexity=max(1, causal_count),
+        cyclomatic_complexity=max(2, causal_count),
         margin_annotations=margin_annotations,
         line_count=line_count,
         syntax_valid=True,
@@ -465,11 +717,27 @@ def extract_essay_structure(content: str) -> StructuralDependencyMap:
     )
 
 
-def parse_submission(content: str, specified_domain: str = "code") -> StructuralDependencyMap:
+def parse_submission(content: str, specified_domain: str = "python") -> StructuralDependencyMap:
     """
-    Unified entry point for structural parsing.
+    Unified entry point for structural parsing across all supported disciplines:
+    Python, JavaScript/TS, SQL, and Academic Essay.
     """
-    domain = detect_domain(content, specified_domain)
-    if domain == "code":
+    dom = (specified_domain or "").lower()
+    if dom in ("javascript", "typescript", "js", "ts"):
+        return extract_js_structure(content)
+    elif dom in ("sql",):
+        return extract_sql_structure(content)
+    elif dom in ("essay", "academic_essay"):
+        return extract_essay_structure(content)
+    elif dom in ("python", "code"):
         return extract_python_ast(content)
-    return extract_essay_structure(content)
+
+    # Auto-detection fallback
+    detected = detect_domain(content, specified_domain)
+    if detected == "essay":
+        return extract_essay_structure(content)
+    elif "SELECT " in content.upper() and "FROM " in content.upper():
+        return extract_sql_structure(content)
+    elif "function " in content or "const " in content or "async " in content:
+        return extract_js_structure(content)
+    return extract_python_ast(content)

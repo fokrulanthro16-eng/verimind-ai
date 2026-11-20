@@ -77,7 +77,176 @@ def init_db():
 
     conn.commit()
     seed_cohort_if_empty(conn)
+    seed_sample_passports_if_empty(conn)
     conn.close()
+
+
+def seed_sample_passports_if_empty(conn: sqlite3.Connection):
+    """Pre-seeds 3 verified canonical passports for instant 1-click recruiter/registrar lookup."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM viva_sessions WHERE passport_hash LIKE 'VERI-%'")
+    if cursor.fetchone()[0] > 0:
+        return
+
+    sample_passports = [
+        (
+            "viva_sample_case_a",
+            "sub_sample_case_a",
+            "STU_ELENA_ROSTOVA",
+            3,
+            "completed",
+            0.942,
+            "VERIFIED MASTERY",
+            "VERI-A7F48102B90CD334E91523B068AA29841B5C08F31E49D37CA5109BC82057F601",
+            json.dumps({
+                "session_id": "viva_sample_case_a",
+                "passport_hash": "VERI-A7F48102B90CD334E91523B068AA29841B5C08F31E49D37CA5109BC82057F601",
+                "timestamp": "2026-11-20T10:15:00+00:00",
+                "student_hash": "STU_ELENA_ROSTOVA",
+                "verdict": "VERIFIED MASTERY",
+                "authenticity_probability": 0.942,
+                "features": {
+                    "concept_alignment_score": 0.94,
+                    "counterfactual_resilience": 0.92,
+                    "turn_consistency_delta": 0.95,
+                    "response_latency_zscore": -0.12,
+                    "lexical_shift_ratio": 0.16,
+                    "code_complexity_index": 0.55,
+                    "specificity_ratio": 0.88,
+                    "grammar_noise_index": 0.15,
+                },
+                "feature_attributions": [
+                    {"feature": "concept_alignment_score", "label": "Concept Alignment", "value": 0.94, "contribution": 0.38, "impact": "positive"},
+                    {"feature": "counterfactual_resilience", "label": "Counterfactual Perturbation", "value": 0.92, "contribution": 0.32, "impact": "positive"},
+                    {"feature": "specificity_ratio", "label": "AST Specificity Ratio", "value": 0.88, "contribution": 0.28, "impact": "positive"},
+                    {"feature": "turn_consistency_delta", "label": "Turn Consistency", "value": 0.95, "contribution": 0.21, "impact": "positive"},
+                    {"feature": "grammar_noise_index", "label": "Grammar Noise Index [FAIRNESS SHIELD]", "value": 0.15, "contribution": 0.00, "impact": "neutral"},
+                ],
+                "legacy_stylometric_risk": 14.0,
+                "legacy_detector_verdict": "14% AI-GENERATED · HUMAN AUTHENTIC",
+                "remediation_plan": {
+                    "gap_summary": "Zero critical conceptual deficits identified. Candidate demonstrates deep mental model of algorithmic invariants.",
+                    "guiding_question": "How would you adapt this invariant to support distributed cache eviction under network partitions?",
+                    "concrete_next_step": "Extend the test suite to evaluate amortized lock contention under high concurrent reader throughput.",
+                    "recommended_concept": "Amortized Complexity & Concurrent Data Structures",
+                },
+                "submission_content": "class SlidingWindowRateLimiter: ...",
+                "ast_signature": "8F3A2B1C9D0E7F4A5B6C3D2E1F0A9B8C7D6E5F4A3B2C1D0E9F8A7B6C5D4E3F2A",
+                "domain": "python",
+            }),
+            "2026-11-20T10:15:00+00:00",
+        ),
+        (
+            "viva_sample_case_b",
+            "sub_sample_case_b",
+            "STU_ALEX_TURNER",
+            3,
+            "completed",
+            0.141,
+            "CONCEPT GAP",
+            "VERI-B21C94E07F81895B309A4D3E5C77A19B86043C0D6208A7492EFB153094862B02",
+            json.dumps({
+                "session_id": "viva_sample_case_b",
+                "passport_hash": "VERI-B21C94E07F81895B309A4D3E5C77A19B86043C0D6208A7492EFB153094862B02",
+                "timestamp": "2026-11-20T11:30:00+00:00",
+                "student_hash": "STU_ALEX_TURNER",
+                "verdict": "CONCEPT GAP",
+                "authenticity_probability": 0.141,
+                "features": {
+                    "concept_alignment_score": 0.18,
+                    "counterfactual_resilience": 0.12,
+                    "turn_consistency_delta": 0.35,
+                    "response_latency_zscore": 2.45,
+                    "lexical_shift_ratio": 0.82,
+                    "code_complexity_index": 0.48,
+                    "specificity_ratio": 0.15,
+                    "grammar_noise_index": 0.10,
+                },
+                "feature_attributions": [
+                    {"feature": "concept_alignment_score", "label": "Concept Alignment", "value": 0.18, "contribution": -0.42, "impact": "negative"},
+                    {"feature": "counterfactual_resilience", "label": "Counterfactual Perturbation", "value": 0.12, "contribution": -0.38, "impact": "negative"},
+                    {"feature": "specificity_ratio", "label": "AST Specificity Ratio", "value": 0.15, "contribution": -0.29, "impact": "negative"},
+                    {"feature": "response_latency_zscore", "label": "Paste Burst / Fast Latency", "value": 2.45, "contribution": -0.25, "impact": "negative"},
+                    {"feature": "grammar_noise_index", "label": "Grammar Noise Index [FAIRNESS SHIELD]", "value": 0.10, "contribution": 0.00, "impact": "neutral"},
+                ],
+                "legacy_stylometric_risk": 93.0,
+                "legacy_detector_verdict": "93% AI-GENERATED · HIGH MATCH TO KNOWN CATALOG",
+                "remediation_plan": {
+                    "gap_summary": "Substantial conceptual gap: inability to explain priority queue mechanism or trace execution under negative edge cycles.",
+                    "guiding_question": "Can you trace by hand step-by-step what happens in memory when a negative edge weight is encountered?",
+                    "concrete_next_step": "Implement the core relaxation step from first principles and observe Dijkstra infinite loops under negative cycles.",
+                    "recommended_concept": "Graph Relaxation & Greedy Invariants",
+                },
+                "submission_content": "class DijkstraShortestPathEngine: ...",
+                "ast_signature": "4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C",
+                "domain": "python",
+            }),
+            "2026-11-20T11:30:00+00:00",
+        ),
+        (
+            "viva_sample_case_c",
+            "sub_sample_case_c",
+            "STU_JIAN_WEI",
+            3,
+            "completed",
+            0.923,
+            "VERIFIED MASTERY",
+            "VERI-C984DF10A6209B74C8350174E18293BC5401928374EBC059A182049281745C03",
+            json.dumps({
+                "session_id": "viva_sample_case_c",
+                "passport_hash": "VERI-C984DF10A6209B74C8350174E18293BC5401928374EBC059A182049281745C03",
+                "timestamp": "2026-11-20T12:45:00+00:00",
+                "student_hash": "STU_JIAN_WEI",
+                "verdict": "VERIFIED MASTERY",
+                "authenticity_probability": 0.923,
+                "features": {
+                    "concept_alignment_score": 0.91,
+                    "counterfactual_resilience": 0.93,
+                    "turn_consistency_delta": 0.94,
+                    "response_latency_zscore": -0.08,
+                    "lexical_shift_ratio": 0.19,
+                    "code_complexity_index": 0.42,
+                    "specificity_ratio": 0.89,
+                    "grammar_noise_index": 0.85,
+                },
+                "feature_attributions": [
+                    {"feature": "concept_alignment_score", "label": "Concept Alignment", "value": 0.91, "contribution": 0.37, "impact": "positive"},
+                    {"feature": "counterfactual_resilience", "label": "Counterfactual Perturbation", "value": 0.93, "contribution": 0.34, "impact": "positive"},
+                    {"feature": "specificity_ratio", "label": "AST Specificity Ratio", "value": 0.89, "contribution": 0.29, "impact": "positive"},
+                    {"feature": "grammar_noise_index", "label": "Grammar Noise Index [FAIRNESS SHIELD]", "value": 0.85, "contribution": 0.00, "impact": "neutral"},
+                ],
+                "legacy_stylometric_risk": 89.0,
+                "legacy_detector_verdict": "89% AI-GENERATED · FALSE POSITIVE ON NON-NATIVE SYNTAX",
+                "remediation_plan": {
+                    "gap_summary": "Zero critical conceptual deficits identified. Candidate demonstrates high algorithmic fluency; surface non-native English syntax shielded from penalty.",
+                    "guiding_question": "How would you optimize the write pointer logic to operate in-place with O(1) auxiliary space without returning a new seen_map?",
+                    "concrete_next_step": "Test in-place two-pointer traversal on unsorted stream inputs.",
+                    "recommended_concept": "In-Place Two-Pointer Traversal & Frequency Counting",
+                },
+                "submission_content": "def remove_duplicates_and_count(nums_list): ...",
+                "ast_signature": "1E2F3A4B5C6D7E8F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9C0D1E2F",
+                "domain": "python",
+            }),
+            "2026-11-20T12:45:00+00:00",
+        ),
+    ]
+
+    for p in sample_passports:
+        # Also ensure submission record exists
+        cursor.execute(
+            "INSERT OR IGNORE INTO submissions (id, student_hash, domain, content, ast_json, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (p[1], p[2], "python", "# Sample submission", "{}", p[9]),
+        )
+        cursor.execute(
+            """
+            INSERT OR REPLACE INTO viva_sessions (
+                id, submission_id, student_hash, current_turn, status,
+                authenticity_prob, verdict, passport_hash, passport_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            p,
+        )
+    conn.commit()
 
 
 def seed_cohort_if_empty(conn: sqlite3.Connection):

@@ -254,8 +254,14 @@ def calculate_specificity(answer: str, ast_map: StructuralDependencyMap, target_
     matched_tokens = [tok for tok in ast_tokens if len(tok) >= 3 and tok in ans_lower]
     score += min(0.40, len(matched_tokens) * 0.15)
 
-    # Complexity terminology check
-    if any(k in ans_lower for k in ["o(1)", "o(n)", "constant", "linear", "amortized", "lock", "thread"]):
+    # Complexity & domain terminology check
+    domain_terms = [
+        "o(1)", "o(n)", "constant", "linear", "amortized", "lock", "thread",
+        "microtask", "macrotask", "promise", "event loop", "abortcontroller", "queue",
+        "partition", "window", "index", "b-tree", "cte", "cartesian", "scan",
+        "warrant", "epistemic", "bias", "proctoring", "surveillance", "causal", "syllogism"
+    ]
+    if any(k in ans_lower for k in domain_terms):
         score += 0.15
 
     return round(float(min(0.98, max(0.10, score))), 3)
@@ -509,6 +515,7 @@ def finalize_viva(req: FinalizeRequest):
     # 4. SHA-256 Tamper-Evident Competency Passport Hash over Canonical JSON
     now_iso = datetime.now(timezone.utc).isoformat()
     submission_content = sub["content"] if sub else ""
+    sub_domain = sub["domain"] if sub and "domain" in sub.keys() else "python"
     canonical_passport_data = {
         "session_id": req.session_id,
         "student_hash": session["student_hash"],
@@ -517,6 +524,7 @@ def finalize_viva(req: FinalizeRequest):
         "viva_turn_scores": turn_scores,
         "calibrated_authenticity_probability": prob,
         "verdict": verdict,
+        "domain": sub_domain,
         "timestamp": now_iso,
     }
     canonical_str = json.dumps(canonical_passport_data, sort_keys=True)
@@ -536,6 +544,7 @@ def finalize_viva(req: FinalizeRequest):
         remediation_plan=remediation,
         submission_content=submission_content,
         ast_signature=canonical_passport_data["ast_signature"],
+        domain=sub_domain,
     )
 
     # Save to SQLite
@@ -552,6 +561,55 @@ def finalize_viva(req: FinalizeRequest):
             passport_hash,
             passport_record.model_dump_json(),
             req.session_id,
+        ),
+    )
+
+    # Dynamic SQLite Persistence into Cohort Records (Live Pilots & Custom Submissions)
+    stu_hash = session["student_hash"]
+    if stu_hash.startswith("STU-") or stu_hash.startswith("PILOT-"):
+        stu_id = stu_hash
+    else:
+        stu_id = f"PILOT-{stu_hash[:8]}"
+
+    c1 = round(float(turn_scores[0] if len(turn_scores) > 0 else prob), 2)
+    c2 = round(float(turn_scores[1] if len(turn_scores) > 1 else prob), 2)
+    c3 = round(float(turn_scores[2] if len(turn_scores) > 2 else prob), 2)
+    c4 = round(float(features.get("specificity_ratio", prob)), 2)
+    c5 = round(float(features.get("counterfactual_resilience", prob)), 2)
+    c6 = round(float(features.get("concept_alignment_score", prob)), 2)
+
+    concepts_dict = {
+        "Hash Maps & O(1)": c1,
+        "Recursion & Base Cases": c2,
+        "Edge-Case Guards": c3,
+        "Time Complexity": c4,
+        "Memory & Mutation": c5,
+        "Async & Concurrency": c6,
+    }
+    weakest_c = min(concepts_dict.items(), key=lambda x: x[1])[0]
+
+    if prob >= 0.75:
+        arch = "non_native_expert" if features.get("grammar_noise_index", 0) > 0.45 else "genuine_builder"
+    elif prob >= 0.40:
+        arch = "surface_ai_assisted"
+    else:
+        arch = "blind_copy_paste"
+
+    cursor.execute(
+        """
+        INSERT OR REPLACE INTO cohort_records (
+            student_id, archetype, overall_score,
+            concept_hash_maps, concept_recursion, concept_edge_guards,
+            concept_time_complexity, concept_memory_mutation, concept_async_concurrency,
+            weakest_concept
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            stu_id,
+            arch,
+            round(float(prob), 2),
+            c1, c2, c3, c4, c5, c6,
+            weakest_c,
         ),
     )
 

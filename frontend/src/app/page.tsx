@@ -5,6 +5,8 @@ import Masthead from "@/components/Masthead";
 import AssessmentWorkspace from "@/components/AssessmentWorkspace";
 import CohortDiagnostics from "@/components/CohortDiagnostics";
 import ModelFairnessAudit from "@/components/ModelFairnessAudit";
+import CredentialVerifierPortal from "@/components/CredentialVerifierPortal";
+import IntegrationKitModal from "@/components/IntegrationKitModal";
 import { HealthResponse, DemoCase, fetchHealth, fetchDemoCases } from "@/lib/api";
 
 export default function Home() {
@@ -12,6 +14,7 @@ export default function Home() {
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [demos, setDemos] = useState<DemoCase[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showIntegrationModal, setShowIntegrationModal] = useState<boolean>(false);
 
   useEffect(() => {
     async function loadInitialData() {
@@ -47,6 +50,7 @@ export default function Home() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         health={health}
+        onOpenIntegrationModal={() => setShowIntegrationModal(true)}
       />
 
       {/* Main Content Area */}
@@ -60,9 +64,16 @@ export default function Home() {
             {activeTab === 1 && <AssessmentWorkspace demos={demos} />}
             {activeTab === 2 && <CohortDiagnostics />}
             {activeTab === 3 && <ModelFairnessAudit />}
+            {activeTab === 4 && <CredentialVerifierPortal />}
           </>
         )}
       </main>
+
+      {/* Enterprise B2B API & LMS Integration Kit Modal */}
+      <IntegrationKitModal
+        isOpen={showIntegrationModal}
+        onClose={() => setShowIntegrationModal(false)}
+      />
     </div>
   );
 }

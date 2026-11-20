@@ -236,51 +236,153 @@ class AIClientsManager:
         difficulty: int,
         ast_map: StructuralDependencyMap,
     ) -> MicroVivaTurn:
-        """Deterministic, grounded IRT prober based on the AST layout."""
+        """Deterministic, grounded IRT prober based on the AST layout across all disciplines."""
+        domain = getattr(ast_map, "domain", "python")
+
         # Find key AST targets
         ds_ann = next((m for m in ast_map.margin_annotations if m.category == "DATA_STRUCTURE"), None)
         guard_ann = next((m for m in ast_map.margin_annotations if m.category == "EDGE_GUARD"), None)
         logic_ann = next((m for m in ast_map.margin_annotations if m.category == "LOGIC_CORE"), None)
         comp_ann = next((m for m in ast_map.margin_annotations if m.category == "COMPLEXITY"), None)
 
-        if turn_number == 1:
-            target_line = ds_ann.line if ds_ann else (logic_ann.line if logic_ann else 4)
-            ds_name = ast_map.data_structures[0] if ast_map.data_structures else "lookup structure"
-            question = (
-                f"On Line {target_line:02d}, you chose a {ds_name}. "
-                f"Explain the algorithmic invariant and asymptotic time complexity this choice provides over an array or linear scan."
-            )
-            rubric = (
-                f"{ds_name} or hash map provides O(1) average lookup and insertion time complexity "
-                f"compared to O(N) linear search in a list or sequence."
-            )
-            tag = "DATA_STRUCTURE_MECHANISM"
+        if domain == "javascript":
+            if turn_number == 1:
+                target_line = ds_ann.line if ds_ann else (logic_ann.line if logic_ann else 8)
+                question = (
+                    f"On Line {target_line:02d}, you declared a Map and asynchronous worker controls. "
+                    f"Explain the microtask event-loop execution queue and why this pattern avoids blocking the main thread."
+                )
+                rubric = (
+                    "Promises and async/await queue callbacks in the microtask queue, which drains before macrotasks, "
+                    "preventing main-thread blocking while Map guarantees O(1) amortized key lookup."
+                )
+                tag = "ASYNC_EVENT_LOOP_MECHANISM"
+            elif turn_number == 2:
+                target_line = guard_ann.line if guard_ann else 13
+                question = (
+                    f"Suppose two concurrent async calls invoke executeTask simultaneously with identical taskIds "
+                    f"while activeWorkers is at maximum concurrency. Which line prevents duplicate task execution?"
+                )
+                rubric = (
+                    f"Line {target_line} guards inputs while the pendingQueue and taskCache checks serialize requests, "
+                    f"returning cached results without spawning redundant worker tasks."
+                )
+                tag = "COUNTERFACTUAL_RACE_CONDITION"
+            else:
+                target_line = logic_ann.line if logic_ann else 20
+                question = (
+                    f"Propose a 1–2 line architectural patch near Line {target_line:02d} using AbortController or a timeout "
+                    f"to ensure stalled tasks cancel gracefully without memory leaks."
+                )
+                rubric = (
+                    "Pass AbortSignal to taskFn and register signal.addEventListener('abort', reject) or wrap in Promise.race with setTimeout."
+                )
+                tag = "TRANSFER_CONCURRENCY_PATCH"
 
-        elif turn_number == 2:
-            target_line = guard_ann.line if guard_ann else (comp_ann.line if comp_ann else 7)
-            guard_expr = ast_map.edge_guards[0].condition if ast_map.edge_guards else "the boundary check"
-            question = (
-                f"Suppose the input stream is mutated to contain 1,000,000 duplicate keys followed by an empty collection. "
-                f"Which exact line executes defensive bounds checking or fails, and what is the memory implication?"
-            )
-            rubric = (
-                f"Line {target_line} guards against empty or invalid input preventing IndexError or KeyError, "
-                f"while memory scales with distinct keys O(N) rather than total stream size."
-            )
-            tag = "COUNTERFACTUAL_PERTURBATION"
+        elif domain == "sql":
+            if turn_number == 1:
+                target_line = comp_ann.line if comp_ann else (logic_ann.line if logic_ann else 10)
+                question = (
+                    f"On Line {target_line:02d}, you specified a window function ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...). "
+                    f"Explain the relational execution plan advantage of partitioning over a correlated subquery."
+                )
+                rubric = (
+                    "Window partition sorts within grouped buckets in O(N log N) in a single pass without triggering "
+                    "the O(N^2) quadratic nested loop scan required by correlated subqueries."
+                )
+                tag = "RELATIONAL_WINDOW_MECHANISM"
+            elif turn_number == 2:
+                target_line = guard_ann.line if guard_ann else 13
+                question = (
+                    f"Suppose the telemetry table grows to 100,000,000 rows with 60% NULL user_ids. "
+                    f"Which exact line ensures unindexed NULL records are pruned before the join, and what is the index scan implication?"
+                )
+                rubric = (
+                    f"Line {target_line} filters user_id IS NOT NULL, preventing full table scans and eliminating Cartesian explosion during join."
+                )
+                tag = "COUNTERFACTUAL_INDEX_SCAN"
+            else:
+                target_line = logic_ann.line if logic_ann else 23
+                question = (
+                    f"Propose a composite covering index definition near Line {target_line:02d} that allows this query "
+                    f"to execute as an Index-Only Scan without touching heap pages."
+                )
+                rubric = (
+                    "CREATE INDEX idx_telemetry_user_created ON telemetry_events (user_id, created_at DESC) INCLUDE (session_id, action_type);"
+                )
+                tag = "TRANSFER_INDEX_OPTIMIZATION"
 
-        else:  # Turn 3: Transfer Live Patch
-            target_line = logic_ann.line if logic_ann else 10
-            question = (
-                f"If this implementation must run in a high-concurrency multi-threaded environment "
-                f"without introducing race conditions or external database dependencies, "
-                f"what 1–2 line architectural patch or invariant guarantee would you add near Line {target_line:02d}?"
-            )
-            rubric = (
-                f"Introduce an explicit mutex lock (threading.Lock) around state mutation "
-                f"or maintain immutable atomic snapshot semantics."
-            )
-            tag = "TRANSFER_CONCURRENCY_PATCH"
+        elif domain == "essay":
+            if turn_number == 1:
+                target_line = comp_ann.line if comp_ann else (logic_ann.line if logic_ann else 1)
+                question = (
+                    f"On Line {target_line:02d}, you establish your core thesis. "
+                    f"Explain the structural causal warrant linking your critique of surveillance proctoring to the cognitive authenticity model."
+                )
+                rubric = (
+                    "Behavioral surveillance relies on noisy proxy metrics with high false positive rates on non-native speakers, "
+                    "whereas cognitive probing directly evaluates invariant conceptual reasoning with zero demographic bias."
+                )
+                tag = "EPISTEMIC_CAUSAL_WARRANT"
+            elif turn_number == 2:
+                target_line = guard_ann.line if guard_ann else 4
+                question = (
+                    f"Suppose an adversarial critique claims 95% of students prefer automated proctoring for scheduling convenience. "
+                    f"How does your thesis accommodate or refute this without weakening the fairness argument?"
+                )
+                rubric = (
+                    "The thesis addresses epistemic validity and algorithmic fairness rather than scheduling; "
+                    "asynchronous Socratic viva preserves scheduling flexibility while removing biometric surveillance bias."
+                )
+                tag = "COUNTERFACTUAL_EVIDENTIARY_DEFENSE"
+            else:
+                target_line = logic_ann.line if logic_ann else 7
+                question = (
+                    f"Formulate a 1-sentence qualifying boundary condition near Line {target_line:02d} specifying under what "
+                    f"institutional or technical constraints this cognitive authenticity model would require auxiliary human oversight."
+                )
+                rubric = (
+                    "In high-stakes certification boundaries with severe cognitive impairment or extreme network instability, "
+                    "borderline verdicts should automatically route to faculty review committees."
+                )
+                tag = "TRANSFER_ETHICAL_QUALIFICATION"
+
+        else:  # Python / Default Code
+            if turn_number == 1:
+                target_line = ds_ann.line if ds_ann else (logic_ann.line if logic_ann else 4)
+                ds_name = ast_map.data_structures[0] if ast_map.data_structures else "lookup structure"
+                question = (
+                    f"On Line {target_line:02d}, you chose a {ds_name}. "
+                    f"Explain the algorithmic invariant and asymptotic time complexity this choice provides over an array or linear scan."
+                )
+                rubric = (
+                    f"{ds_name} or hash map provides O(1) average lookup and insertion time complexity "
+                    f"compared to O(N) linear search in a list or sequence."
+                )
+                tag = "DATA_STRUCTURE_MECHANISM"
+            elif turn_number == 2:
+                target_line = guard_ann.line if guard_ann else (comp_ann.line if comp_ann else 7)
+                question = (
+                    f"Suppose the input stream is mutated to contain 1,000,000 duplicate keys followed by an empty collection. "
+                    f"Which exact line executes defensive bounds checking or fails, and what is the memory implication?"
+                )
+                rubric = (
+                    f"Line {target_line} guards against empty or invalid input preventing IndexError or KeyError, "
+                    f"while memory scales with distinct keys O(N) rather than total stream size."
+                )
+                tag = "COUNTERFACTUAL_PERTURBATION"
+            else:  # Turn 3
+                target_line = logic_ann.line if logic_ann else 10
+                question = (
+                    f"If this implementation must run in a high-concurrency multi-threaded environment "
+                    f"without introducing race conditions or external database dependencies, "
+                    f"what 1–2 line architectural patch or invariant guarantee would you add near Line {target_line:02d}?"
+                )
+                rubric = (
+                    f"Introduce an explicit mutex lock (threading.Lock) around state mutation "
+                    f"or maintain immutable atomic snapshot semantics."
+                )
+                tag = "TRANSFER_CONCURRENCY_PATCH"
 
         return MicroVivaTurn(
             turn_number=turn_number,
