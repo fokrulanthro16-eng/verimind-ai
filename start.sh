@@ -10,16 +10,15 @@ echo '========================================================'
 echo '[1/2] Starting FastAPI backend on 127.0.0.1:8000...'
 cd /app/backend
 python -m uvicorn main:app --host 127.0.0.1 --port 8000 &
-BACKEND_PID=$!
 
-# Wait for backend health endpoint to respond with HTTP 200
+# Quick wait for backend health endpoint to respond
 echo '[2/2] Awaiting backend health verification (/api/health)...'
-for i in {1..30}; do
+for i in {1..20}; do
   if curl -sf http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
     echo '  ✓ FastAPI backend is live and healthy!'
     break
   fi
-  sleep 1
+  sleep 0.5
 done
 
 # Start Next.js frontend proxy server on 0.0.0.0:7860

@@ -39,10 +39,10 @@ RUN npm run build
 WORKDIR /app
 COPY backend/ ./backend/
 COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+RUN sed -i 's/\r$//' /app/start.sh && chmod +x /app/start.sh
 
-# Ensure non-root HF Spaces user has full read/write permissions
-RUN mkdir -p /app/backend/data && \
+# Ensure non-root HF Spaces user (UID 1000) has full read/write permissions
+RUN mkdir -p /app/backend/data /app/.cache/huggingface && \
     chmod -R 777 /app && \
     chmod -R 777 /tmp
 
