@@ -55,3 +55,6 @@ Thumbs.db
 demo_studio/
 *.mp4
 devpost_screenshots/
+
+.vercel
+.env*
