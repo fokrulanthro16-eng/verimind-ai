@@ -2,6 +2,7 @@
 
 > **Zero-Spyware, Zero-Cloud Proof-of-Understanding & Cognitive Authenticity Engine for Higher Education and Technical Hiring**
 
+[![Live App](https://img.shields.io/badge/LIVE_APP-verimind--ai.vercel.app-10B981?style=for-the-badge&logo=vercel&logoColor=white)](https://verimind-ai.vercel.app)
 [![Watch Video Demo](https://img.shields.io/badge/Demo_Video-Watch_on_YouTube-red?style=for-the-badge&logo=youtube)](https://youtu.be/AoisixvynVI)
 [![Privacy](https://img.shields.io/badge/Privacy-Zero--Spyware-success?style=for-the-badge)](#zero-spyware-privacy-first-architecture)
 [![Fairness Shield](https://img.shields.io/badge/Fairness_Shield-0.00%25_Grammar_Bias-blue?style=for-the-badge)](#zero-grammar-bias-fairness-shield)
@@ -18,6 +19,8 @@
 [![VeriMind AI Full Video Walkthrough](docs/assets/screenshots/01_live_assessment_xray.png)](https://youtu.be/AoisixvynVI)
 
 > **[▶ Click here or on the preview image above to watch the full 1080p architectural demo walkthrough on YouTube](https://youtu.be/AoisixvynVI)**
+
+🚀 **Try Live Interactive App:** [https://verimind-ai.vercel.app](https://verimind-ai.vercel.app) | 🎬 **Watch 1080p Demo:** [https://youtu.be/AoisixvynVI](https://youtu.be/AoisixvynVI)
 
 ---
 
@@ -154,7 +157,9 @@ Holdout evaluation executed across a stratified 80/20 split on the 400-sample Do
 
 ## 60-Second Quickstart
 
-### Prerequisites
+> **🌐 Instant Live Web Version (Zero Install):** Experience the full cognitive authenticity suite and client-side deterministic prober right now in your browser at **[https://verimind-ai.vercel.app](https://verimind-ai.vercel.app)** without running local servers.
+
+### Prerequisites (For Full Local Development)
 - Python 3.10+
 - Node.js 18+ and npm
 
